@@ -6,18 +6,71 @@ use std::rc::Rc;
 pub mod list;
 
 pub trait List<T> {
+    /**
+     * @brief inserts an element to the end of the list.
+     * 
+     * LinkedList implements this method in O(n) for time and O(1) for memory.
+     * DoublyLinkedList implements this method in O(1) for both time and memory.
+     * 
+     * @param T value Element to be inserted.
+     * 
+     * @return u8 0 on success, 1 otherwise.
+     */
     fn append(&mut self, value : T) -> u8;
 
+    /**
+     * #brief insert an element so it ends up in the specified index.
+     * 
+     * Both LinkedList and DoublyLinkedList implement this method in O(n) for time and O(1) for memory.
+     * 
+     * @param T value element to be inserted.
+     * @param usize index The new element will be at this index.
+     * 
+     * @return u8 0 on success.
+     */
     fn insert_at(&mut self, value : T, index : usize) -> u8;
         
+    /**
+     * @brief removes an element at the specified index from the list.
+     * 
+     * This method is implemented in O(n) for time and O(1) in DoublyLinkedList and LinkedList.
+     * 
+     * @param usize index The element at this index will be freed and replaced by the next element.
+     * 
+     * @return u8 0 on success, 1 if the list is already empy or 2 if index is out of bounds.
+     */
     fn remove_at(&mut self, index : usize) -> u8;
 
+    /**
+     * @brief returns the value stored at the specified index.
+     * 
+     * This method is implemented in O(n) for time and O(1) for memory in the case of 
+     *  DoublyLinkedList and LinkedList.
+     * 
+     * @param usize index the position of the desired element, starting from 0.
+     * 
+     * @return &T an inmutable borrow of the desired element stored inside the list.
+     */
     fn value_at(&self, index : usize) -> &T;
 
+    /**
+     * @brief The number of elements stored in the list.
+     * 
+     * This methos is implements in O(1) for time and memory in DoublyLinkedList and LinkedList.
+     * 
+     * @return usize number of elements inside the list.
+     */
     fn size(&self) -> usize;
 }
 
 pub trait Reversible {
+    /**
+     * @brief It reverses the original order of the list.
+     * 
+     * The list [0,1,2] will become [2,1,0].
+     * 
+     * @return &Self inmutable reference to self.
+     */
     fn reverse(&mut self) -> &mut Self;
 }
 
