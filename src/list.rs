@@ -1,5 +1,3 @@
-
-
 use crate::LinkedList;
 use crate::DoublyLinkedList;
 use crate::List;
