@@ -1,6 +1,7 @@
 use crate::LinkedList;
 use crate::DoublyLinkedList;
 use crate::List;
+use crate::Deque;
 use crate::Node;
 use crate::DoubleNode;
 use crate::Reversible;
@@ -50,7 +51,7 @@ impl<'a, T : Clone + fmt::Display + std::convert::From<T>> LinkedList<T> {
         }
     }
 
-    fn at_as_ref(&self, index : usize) -> &Box<Node<T>> {
+    fn at_as_ref(&self, index : usize) -> &Node<T> {
         if index >= self.n {panic!("Invalid index")};
 
         let mut current = &self.head;
@@ -221,6 +222,10 @@ impl<'a, T> List<T> for LinkedList<T>
         return &self.at_as_ref(index).value;
     }
 
+    fn mut_value_at(&mut self, index : usize) -> &mut T {
+        return &mut self.at_as_mut(index).value;
+    }
+
     fn size(&self) -> usize {
         self.n
     }
@@ -313,7 +318,29 @@ impl<T : Clone + fmt::Display + std::convert::From<T>> DoublyLinkedList<T> {
             }
         }
 
-        &current.as_ref().unwrap()
+        current.as_ref().unwrap()
+    }
+
+    pub fn remove_node(&mut self, node : Rc<RefCell<DoubleNode<T>>>) -> DoubleNode<T> {
+        let prev_node = match node.borrow().prev.clone() {
+            Some(prev) => prev,
+            None => panic!("Incomplete note at function remove_node.")
+        };
+
+        let next_node = match node.borrow().next.clone() {
+            Some(next) => next,
+            None => panic!("Incomplete note at function remove_node.")
+        };
+        
+        prev_node.borrow_mut().next = Option::from(next_node.clone());
+        next_node.borrow_mut().prev = Option::from(prev_node);
+
+        if Rc::ptr_eq(self.head.as_ref().unwrap(), &node) {
+            self.head = Option::from(next_node);
+        }
+        
+        self.n -= 1;
+        node.borrow().clone()
     }
 }
 
@@ -335,7 +362,7 @@ impl<'a, T> List<T> for DoublyLinkedList<T>
             new_node.next = Option::from(self.at(0));
             let cell_node = Rc::from(RefCell::from(new_node));
             self.at(&self.n-1).borrow_mut().next = Option::from(cell_node.clone());
-            self.n = self.n + 1;
+            self.n += 1; 
         
             self.head.as_mut().unwrap().borrow_mut().prev = Option::from(cell_node);
         }
@@ -353,8 +380,9 @@ impl<'a, T> List<T> for DoublyLinkedList<T>
 
         let new_node = DoubleNode::new(value);
 
-        let (mut prev_node, mut next_node, inserting_node) : (Rc<RefCell<DoubleNode<T>>>, 
-            Rc<RefCell<DoubleNode<T>>>, Rc<RefCell<DoubleNode<T>>>); 
+        let mut prev_node : Rc<RefCell<DoubleNode<T>>>;
+        let mut next_node : Rc<RefCell<DoubleNode<T>>>;
+        let inserting_node : Rc<RefCell<DoubleNode<T>>>;
 
         //Just to initialize values.
         prev_node = self.at(0);
@@ -422,6 +450,10 @@ impl<'a, T> List<T> for DoublyLinkedList<T>
     fn value_at(&self, index: usize) -> &T {
         return unsafe {&(*self.at_as_ref(index).as_ptr()).value}
     }
+    
+    fn mut_value_at(&mut self, index : usize) -> &mut T {
+        return unsafe {&mut(*self.at_as_ref(index).as_ptr()).value}
+    }
 
     fn size(&self) -> usize {
         self.n
@@ -434,14 +466,22 @@ impl<T>  fmt::Display for DoublyLinkedList<T>
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::from("[");
         if self.size() != 0 {
+            let line_append : &str;
+            if self.value_at(0).to_string().len() > 10 {line_append = "\n";}
+            else {line_append = "";}
+
+            result += line_append;
             result.add_assign(self.value_at(0).to_string().as_str());
 
             for i in 1..(self.size()) {
-                result.add_assign(",");
+                result += ",";
+                result += line_append;
                 result.add_assign(self.value_at(i).to_string().as_str());
             };
+            
+            result += line_append;
         }
-        result.add_assign("]");
+        result += "]";
         write!(f, "{}", result.as_str())
     }
 }
@@ -465,8 +505,61 @@ impl<T> Reversible for DoublyLinkedList<T>
             if i != self.n - 1 { current_node = next_node; }
         }
         
-        self.head = Option::from(current_node.clone());
+        self.head = Option::from(current_node);
 
         self
+    }
+}
+
+impl<T> Clone for DoublyLinkedList<T>
+    where T : Clone + fmt::Display + std::convert::From<T>
+{
+    fn clone(&self) -> Self {
+        if self.n == 0 {
+            return DoublyLinkedList::new();
+        }
+
+        let mut new_list : DoublyLinkedList<T> = DoublyLinkedList::new();
+
+        let mut curr_old = self.head.as_ref().unwrap().clone();
+
+        for _ in 0..(self.n) {
+            new_list.append(curr_old.borrow().value.clone());
+
+           curr_old = curr_old.clone().borrow().next.as_ref().unwrap().clone();
+        }
+
+        new_list
+
+    }
+}
+
+impl<T> Deque<T> for DoublyLinkedList<T>
+    where T : Clone + fmt::Display + std::convert::From<T>
+{
+    fn empty(&self) -> bool {
+        self.size() == 0
+    }
+
+    fn push_back(&mut self, value : T) -> &mut Self {
+        self.append(value);
+        self
+    }
+
+    fn pop_back(&mut self) -> T {
+        let removed = self.value_at(self.size() - 1).clone();
+        self.remove_at(self.size() - 1);
+        removed
+    }
+
+    fn push_front(&mut self, value : T) -> &mut Self {
+        self.insert_at(value, 0);
+        self
+    }
+
+    fn pop_front(&mut self) -> T {
+        let removed = self.value_at(0).clone();
+        self.remove_at(0);
+        removed
     }
 }

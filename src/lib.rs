@@ -54,6 +54,18 @@ pub trait List<T> {
     fn value_at(&self, index : usize) -> &T;
 
     /**
+     * @brief returns the value stored at the specified index.
+     * 
+     * This method is implemented in O(n) for time and O(1) for memory in the case of 
+     *  DoublyLinkedList and LinkedList.
+     * 
+     * @param usize index the position of the desired element, starting from 0.
+     * 
+     * @return &T a mutable borrow of the desired element stored inside the list.
+     */
+    fn mut_value_at(&mut self, index : usize) -> &mut T;
+
+    /**
      * @brief The number of elements stored in the list.
      * 
      * This methos is implements in O(1) for time and memory in DoublyLinkedList and LinkedList.
@@ -72,6 +84,43 @@ pub trait Reversible {
      * @return &Self inmutable reference to self.
      */
     fn reverse(&mut self) -> &mut Self;
+}
+
+pub trait Deque<T>  {
+    /**
+     * @brief To check if the Deque is empty.
+     * 
+     * @return bool true if it's empty, false otherwise.
+     */
+    fn empty(&self) -> bool;
+
+    /**
+     * @brief Pushes an element to the end.
+     * 
+     * @return &mut Self A reference to itself.
+     */
+    fn push_back(&mut self, value : T) -> &mut Self;
+
+    /**
+     * @brief Pops the last element.
+     * 
+     * @return T Element that was previously at the back.
+     */
+    fn pop_back(&mut self) -> T;
+
+    /**
+     * @brief Pushes an element to the front of the list.
+     * 
+     * @return &mut Self Borrow of itself.
+     */
+    fn push_front(&mut self, value : T) -> &mut Self;
+
+    /**
+     * @brief Pops the element in the beggining.
+     * 
+     * @return T Element previously located at the beggining.
+     */
+    fn pop_front(&mut self) -> T;
 }
 
 #[derive(Debug, Clone)]
@@ -94,10 +143,10 @@ pub struct LinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
     n : usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
-    head : Option<Rc<RefCell<DoubleNode<T>>>>,
-    n : usize,
+    pub head : Option<Rc<RefCell<DoubleNode<T>>>>,
+    pub n : usize,
 }
 
 #[cfg(test)]
@@ -106,6 +155,7 @@ mod tests {
     use crate::List;
     use crate::Reversible;
     use crate::DoublyLinkedList;
+    use crate::Deque;
 
     #[test]
     fn append_insert_and_remove() {
@@ -218,4 +268,113 @@ mod tests {
 
         assert_eq!(s, "[10,20,30]");
     }
+    
+    #[test]
+    fn deque_operation() {
+        let mut deq : DoublyLinkedList<u64> = DoublyLinkedList::new();
+
+        let size : usize = 50;
+        let mut arr : [u64; 50] = [0; 50];
+        
+        //Testing empty()
+        assert_eq!(deq.empty(), true); 
+
+        deq.push_back(1);
+        assert_eq!(deq.empty(), false);
+
+        //Testing push_back()
+        deq.pop_back();
+
+        for i in 0..(size) {
+            deq.push_back(i as u64);
+            arr[i as usize] = i as u64;
+        }
+        
+        assert_eq!(deq.size(), size);
+        for i in 0..(size) {
+            assert_eq!(arr[i] , *deq.value_at(i));
+        }
+
+        //Testing pop_back()
+        for i in (0..(size)).rev() {
+            assert_eq!(deq.pop_back(), i as u64);
+        }
+
+        assert_eq!(deq.size(), 0 as usize);
+
+        //Testing push_front()
+        for i in 0..(size) {
+            deq.push_front(i as u64);
+            arr[size - 1 - i] = i as u64;
+        }
+
+        assert_eq!(deq.size(), size);
+        for i in 0..(size) {
+            assert_eq!(arr[i] , *deq.value_at(i));
+        }
+
+        //Testing pop_front()
+        for i in (0..(size)).rev() {
+            assert_eq!(deq.pop_front(), i as u64);
+        }
+
+        assert_eq!(deq.empty(), true);
+
+    }
+
+    #[test]
+    fn remove_node() {
+        let mut dllist : DoublyLinkedList<u64> = DoublyLinkedList::new();
+        let mut str :  String;
+
+        for i in 0..7 {
+            dllist.append(i);
+        }
+
+        let mut curr_node = dllist.at_as_ref(0).borrow().prev.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        curr_node = curr_node.clone().borrow().prev.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+
+        str = format!("{}", dllist);
+        assert_eq!(str, "[1,3,5]"); 
+        
+        curr_node = dllist.at_as_ref(0).borrow().prev.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+        curr_node = curr_node.clone().borrow().next.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+        curr_node = curr_node.clone().borrow().next.as_ref().unwrap().clone();
+        dllist.remove_node(curr_node.clone());
+
+        str = format!("{}", dllist);
+        assert_eq!(str, "[]");
+    }
+
+    #[test]
+    fn clone_test() {
+        let mut dllist : DoublyLinkedList<u64> = DoublyLinkedList::new();
+        let str :  String;
+        let clone_str : String;
+
+        for i in 0..7 {
+            dllist.append(i);
+        }
+
+        let clone = dllist.clone();
+        
+        str = format!("{}", dllist);
+        clone_str = format!("{}", clone);
+
+        assert_eq!(str, clone_str);
+        
+
+    }
+
 }
