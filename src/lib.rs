@@ -9,10 +9,10 @@ pub trait List<T> {
     /**
      * @brief inserts an element to the end of the list.
      * 
-     * LinkedList implements this method in O(n) for time and O(1) for memory.
-     * DoublyLinkedList implements this method in O(1) for both time and memory.
-     * 
      * @param T value Element to be inserted.
+   
+   
+     
      * 
      * @return u8 0 on success, 1 otherwise.
      */
@@ -75,6 +75,63 @@ pub trait List<T> {
     fn size(&self) -> usize;
 }
 
+pub trait InmutList<T> {
+    /**
+     * @brief inserts an element to the end of the list.
+     * 
+     * LinkedList implements this method in O(n) for time and O(1) for memory.
+     * 
+     * @param T value Element to be inserted.
+     * 
+     * @return Self A new list with the new value.
+     */
+    fn append(list : Self, other_list : Self) -> Self;
+
+    /**
+     * #brief insert an element so it ends up in the specified index.
+     * 
+     * Both LinkedList and DoublyLinkedList implement this method in O(n) for time and O(1) for memory.
+     * 
+     * @param T value element to be inserted.
+     * @param usize index The new element will be at this index.
+     * 
+     * @return Self A new list with the inserted value.
+     */
+    fn insert_at(list : Self, insert_list : Self, index : usize) -> Self;
+        
+    /**
+     * @brief removes an element at the specified index from the list.
+     * 
+     * This method is implemented in O(n) for time and O(1) in DoublyLinkedList and LinkedList.
+     * 
+     * @param usize index The element at this index will be freed and replaced by the next element.
+     * 
+     * @return Self a new list without the removed elements.
+     */
+    fn remove_at(list : Self, index : usize, count : usize) -> Self;
+
+    /**
+     * @brief returns the value stored at the specified index.
+     * 
+     * This method is implemented in O(n) for time and O(1) for memory in the case of 
+     *  DoublyLinkedList and LinkedList.
+     * 
+     * @param usize index the position of the desired element, starting from 0.
+     * 
+     * @return &T an inmutable borrow of the desired element stored inside the list.
+     */
+    fn value_at(list : Self, index : usize) -> T;
+
+    /**
+     * @brief The number of elements stored in the list.
+     * 
+     * This methos is implements in O(1) for time and memory in DoublyLinkedList and LinkedList.
+     * 
+     * @return usize number of elements inside the list.
+     */
+    fn size(&self) -> usize;
+}
+
 pub trait Reversible {
     /**
      * @brief It reverses the original order of the list.
@@ -124,8 +181,8 @@ pub trait Deque<T>  {
 }
 
 #[derive(Debug, Clone)]
-struct Node<T : Clone + fmt::Display + std::convert::From<T>> {
-    pub next : Option<Box<Node<T>>>,
+struct LinkedNode<T : Clone + fmt::Display + std::convert::From<T>> {
+    pub next : Option<Rc<LinkedNode<T>>>,
     pub value : T,
 }
 
@@ -136,12 +193,10 @@ pub struct DoubleNode<T : Clone + fmt::Display + std::convert::From<T>> {
     pub value : T,
 }
 
-#[derive(Debug, Clone)]
-pub struct LinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
-    head : Option<Box<Node<T>>>, 
-    tail : *mut Option<Box<Node<T>>>,
-    n : usize,
-}
+//#[derive(Debug, Clone)]
+//pub struct LinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
+    //head : Option<Rc<Node<T>>>, 
+//}
 
 #[derive(Debug)]
 pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
@@ -151,50 +206,57 @@ pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::LinkedList;
     use crate::List;
     use crate::Reversible;
     use crate::DoublyLinkedList;
     use crate::Deque;
+    use crate::LinkedNode;
+    use std::rc::Rc;
+    use crate::InmutList;
 
     #[test]
     fn append_insert_and_remove() {
 
-        let mut linked_list : LinkedList<u64> = LinkedList::new();
-        linked_list.append(10);
-        linked_list.append(15);
-        linked_list.insert_at(50, 0);
-        linked_list.insert_at(1,2);
-        linked_list.insert_at(2,0);
-        linked_list.insert_at(3,3);
+        let mut linked_node : Rc<LinkedNode<u64>>= LinkedNode::new(10);
+        linked_node = InmutList::append(linked_node, LinkedNode::new(15));
+        linked_node = InmutList::insert_at(linked_node, LinkedNode::new(50), 0);
+        linked_node = InmutList::insert_at(linked_node, LinkedNode::new(1), 2);
+        linked_node = InmutList::insert_at(linked_node, LinkedNode::new(2), 0);
+        linked_node = InmutList::insert_at(linked_node, LinkedNode::new(3), 3);
+        
+        linked_node = InmutList::remove_at(linked_node, 0, 1);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[50,10,3,1,15]");
 
-        linked_list.remove_at(0);
-        linked_list.remove_at(linked_list.n - 1);
-        linked_list.remove_at(2);
+        linked_node = InmutList::remove_at(linked_node.clone(), InmutList::size(&linked_node) - 1, 1);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[50,10,3,1]");
+
+        linked_node = InmutList::remove_at(linked_node, 2, 1);
     
-        let s = format!("{}", linked_list);
+        let s = format!("{}", linked_node);
         assert_eq!(s, "[50,10,1]");
     }
 
-    #[test]
-    fn reverse() {
-        let mut llist : LinkedList<u64> = LinkedList::new();
-        llist.append(10);
+    //#[test]
+    //fn reverse() {
+        //let mut llist : LinkedList<u64> = LinkedList::new();
+        //llist.append(10);
 
-        let mut s = format!("{}", llist);
+        //let mut s = format!("{}", llist);
 
-        assert_eq!(s, "[10]");
+        //assert_eq!(s, "[10]");
 
-        llist.append(20);
-        s = format!("{}", llist.reverse());
+        //llist.append(20);
+        //s = format!("{}", llist.reverse());
 
-        assert_eq!(s, "[20,10]");
+        //assert_eq!(s, "[20,10]");
 
-        llist.insert_at(30,0);
-        s = format!("{}", llist.reverse());
+        //llist.insert_at(30,0);
+        //s = format!("{}", llist.reverse());
 
-        assert_eq!(s, "[10,20,30]");
-    }
+        //assert_eq!(s, "[10,20,30]");
+    //}
 
     #[test]
     fn dllist_append_at() {

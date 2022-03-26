@@ -1,275 +1,178 @@
-use crate::LinkedList;
 use crate::DoublyLinkedList;
 use crate::List;
+use crate::InmutList;
 use crate::Deque;
-use crate::Node;
+use crate::LinkedNode;
 use crate::DoubleNode;
 use crate::Reversible;
 
 use std::fmt;
 use std::string::String;
 use std::ops::AddAssign;
-use std::ptr;
 use std::cmp;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-impl<'a, T : Clone + fmt::Display + std::convert::From<T>> LinkedList<T> {
 
-    pub fn new() -> LinkedList<T> {
-        LinkedList {
-        head : None,
-        tail : ptr::null_mut(),
-        n : 0,
-        }
-    } 
-
-    fn at_as_mut(&mut self, index : usize) -> &mut Box<Node<T>> {
-        if index >= self.n {panic!("Invalid index")};
-
-        let mut current = &mut self.head;
-        if index == self.n -1 {
-            current = unsafe {
-                if self.tail.is_null() {
-                    panic!("null ptr at fn at_as_mut, index = {}", index);
-                }
-                &mut (*self.tail) 
-                
-            }
-        } else {
-            for _ in 0..(index){
-                match current.as_mut() {
-                    Some(box_node) => current = &mut box_node.next,
-                    None => panic!("Wrong structure at function at.")
-                }
-            }
-        }
-            
-        match current.as_mut() {
-            Some(asked_node) => asked_node,
-            None => panic!("Error in llist at function at_as_mut.")
-        }
-    }
-
-    fn at_as_ref(&self, index : usize) -> &Node<T> {
-        if index >= self.n {panic!("Invalid index")};
-
-        let mut current = &self.head;
-        if index == self.n - 1 {
-            current = unsafe { 
-                if self.tail.is_null() {
-                    panic!("null ptr at fn at_as_mut, index = {}", index);
-                }
-                &(*self.tail) 
-            }
-        } else {
-            for _ in 0..(index){
-                match current {
-                    Some(box_node) => current = &box_node.next,
-                    None => panic!("Wrong structure at function at.")
-                }
-            }
-        }
-            
-        match current {
-            Some(asked_node) => asked_node,
-            None => panic!("Error in llist at function at_as_mut.")
-        }
-    }
-
-    fn at(&mut self, index : usize) -> Box<Node<T>> {
-        if index >= self.n {panic!("Invalid index")};
-            
-        let mut current = &self.head;
-        if index == self.n - 1 {
-            current = unsafe { 
-                if self.tail.is_null() {
-                    panic!("null ptr at fn at_as_mut, index = {}", index);
-                }
-                &(*self.tail)  
-            }
-        } else {
-            for _ in 0..(index){
-                if current.is_some() {
-                    current = &current.as_ref().unwrap().next;
-                }
-            }
-        }
-
-        let asked_node = current.clone();
-
-        if let Some(asked_value) = asked_node {
-            asked_value
-        } else {
-            panic!("Something is wrong at function at.");
-        }
-    }
-        
-}
-
-impl<T : Clone + fmt::Display + std::convert::From<T>> Node<T> {
-    fn new(value : T) -> Node<T> { 
-        Node {
+impl<T : Clone + fmt::Display + std::convert::From<T>> LinkedNode<T> {
+    pub fn new(value : T) -> Rc<LinkedNode<T>> { 
+        let new = LinkedNode {
             value, next : None, 
-        }
+        };
+
+        Rc::from(new)
+    }
+
+    pub fn cons(element : Rc<LinkedNode<T>>, list : Rc<LinkedNode<T>>) -> Rc<LinkedNode<T>> {
+        let new  = LinkedNode {
+            value : element.value.clone(),
+            next : Option::from(list),
+        };
+
+        Rc::from(new)
     }
 }
 
-impl<T>  fmt::Display for LinkedList<T> 
+impl<T>  fmt::Display for LinkedNode<T> 
     where T : fmt::Display + Clone + std::convert::From<T>
 { 
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::from("[");
-        if self.size() != 0 {
-            result.add_assign(self.value_at(0).to_string().as_str());
+        if self.next.is_some() {
+            let mut list = Option::from(Rc::from(self.clone()));
+            
+            result += list.as_ref().unwrap().value.to_string().as_str();
 
-            for i in 1..(self.size()) {
+            loop {
+                if list.as_ref().unwrap().next.is_some() {
+                    list = Option::from(list.as_ref().unwrap().next.as_ref().unwrap().clone());
+                } 
                 result.add_assign(",");
-                result.add_assign(self.value_at(i).to_string().as_str());
-            };
+                result.add_assign(list.as_ref().unwrap().value.to_string().as_str());
+                
+                if list.as_ref().unwrap().next.is_none() {
+                    break;
+                }
+            }
         }
         result.add_assign("]");
         write!(f, "{}", result.as_str())
     }
 }
 
-impl<'a, T> List<T> for LinkedList<T> 
+impl<'a, T> InmutList<T> for Rc<LinkedNode<T>> 
     where T : Clone + fmt::Display + std::convert::From<T>
 {
 
-    fn append(&mut self, value : T) -> u8 {
-        let new_node = Box::from(Node::new(value));
-
-        if self.n == 0 {
-            self.head = Option::from(new_node);
-            self.tail = &mut self.head;
-            self.n += 1;
-        } else {
-            unsafe {
-                if self.tail.is_null() {panic!("Null ptr at append")};
-                (*self.tail).as_mut().unwrap().next = Option::from(new_node);
-                self.tail = &mut (*self.tail).as_mut().unwrap().next;
-            }
-            self.n += 1;
+    fn append(list : Rc<LinkedNode<T>>, other_list : Rc<LinkedNode<T>>) -> Rc<LinkedNode<T>> {
+        if list.next.is_none() {
+            return  LinkedNode::cons(list, other_list); 
         }
         
-        0
+        return LinkedNode::cons(list.clone(), Self::append(list.next.as_ref().unwrap().clone(), other_list));
     } 
 
     //the inserted value will be at index.
-    fn insert_at(&mut self, value : T, index : usize) -> u8 {
-        if index == self.n {
-            self.append(value);
-            return 0;
-        } else if index >= self.n {
-            panic!("Index out of bounds in function insert_at.");
+    fn insert_at(list : Rc<LinkedNode<T>>, insert_list : Rc<LinkedNode<T>>, index : usize) -> Rc<LinkedNode<T>> {
+        if index == 0 {
+            return Self::append(insert_list, list);
+        }                    
+        if index == 1 {  
+            let next : Self;
+            if list.next.is_some() {next = Self::append(insert_list, list.next.as_ref().unwrap().clone());}
+            else {next = insert_list;}
+
+            return Self::append(list, next);
         }
-
-        let mut new_node = Node::new(value);
-
-        new_node.next = Option::from(self.at(index)); 
-         
-        if index != 0 { 
-            let prev_node = &mut self.at_as_mut(index - 1);
-            prev_node.next = Option::from(Box::from(new_node));
-        } else {
-            self.head = Option::from(Box::from(new_node));
-        }
-
-        self.n += 1;
-            
-        if self.n == 1 {self.tail = &mut self.head}
-        else {
-        self.tail = &mut self.at_as_mut(self.n - 2).next;
-        }
-
-        0
+        
+        LinkedNode::cons(LinkedNode::new(list.value.clone()), Self::insert_at(list.next.as_ref().unwrap().clone(), insert_list, index - 1)) 
     }
     
-    fn remove_at(&mut self, index : usize) -> u8 {
-        if self.n == 0 { return 1; }
-        if index >= self.n {
-            return 2;
+    fn remove_at(list : Self, index : usize, count : usize) -> Self {
+        if count == 0 {
+            return list;
         }
-
-        let next_node : Option<Box<Node<T>>>;
-
-        if index != self.n - 1 {
-            next_node = Option::from(self.at(index + 1));
-        } else {
-            next_node = None;                
-        }
-
         if index == 0 {
-            self.head = next_node; 
-        } else {
-            let mut prev_node = self.at_as_mut(index - 1);
-            prev_node.next = next_node; 
+            match list.next.as_ref() {
+                Some(next) => return Self::remove_at(next.clone(), index, count - 1),
+                None => panic!("Invalid index as remove_at function.")
+            }
         }
+        
+        let next = match list.next.as_ref() {
+            Some(next) => next.clone(),
+            None => panic!("Invalid index at remove_at function.")
+        };
 
-        self.n -= 1;
-
-        if self.n == 1 {self.tail = &mut self.head}
-        else if self.n == 0 {self.tail = ptr::null_mut()}
-        else {
-        self.tail = &mut self.at_as_mut(self.n - 2).next;
-        }
-
-        0
+        return Rc::from(LinkedNode::cons(list, Self::remove_at(next, index - 1, count)));
     }
 
-    fn value_at(&self, index: usize) -> &T {
-        return &self.at_as_ref(index).value;
-    }
+    fn value_at(list : Self, index: usize) -> T {
+        if index == 0 {
+            return list.value.clone();
+        }
 
-    fn mut_value_at(&mut self, index : usize) -> &mut T {
-        return &mut self.at_as_mut(index).value;
+        let next = match list.next.as_ref() {
+            Some(next) => next.clone(),
+            None => panic!("Invalid index."),
+        };
+
+        return Self::value_at(next, index - 1);
     }
 
     fn size(&self) -> usize {
-        self.n
+        let mut n : usize = 1;
+
+        let mut list = self.clone();
+
+        while list.next.is_some() {
+            list = list.next.as_ref().unwrap().clone();
+            n += 1;
+        }
+
+        n
     }
 }
 
-impl<T> Reversible for LinkedList<T> 
-    where T : Clone + fmt::Display + std::convert::From<T> 
-{
+//impl<T> Reversible for LinkedNode<T> 
+    //where T : Clone + fmt::Display + std::convert::From<T> 
+//{
 
-    fn reverse(&mut self) -> &mut Self {
-        if self.n <= 1 {return self;}
-        if self.n == 2 {
-            let mut new_head = self.at(1); 
-            new_head.next = Option::from(self.at(0));
-            self.head = Option::from(new_head);
+    //fn reverse(list : Self) -> &mut Self {
+        //if self.  {return self;}
+        //if self.n == 2 {
+            //let mut new_head = self.at(1); 
+            //new_head.next = Option::from(self.at(0));
+            //self.head = Option::from(new_head);
 
-            self.tail = &mut self.at_as_mut(0).next;
-            return self;
-        }
+            //self.tail = &mut self.at_as_mut(0).next;
+            //return self;
+        //}
 
-        //List is at least of length 3.
-        let mut after = self.at(2);
-        let mut middle = self.at(1);
-        let mut before = self.at(0);
+        ////List is at least of length 3.
+        //let mut after = self.at(2);
+        //let mut middle = self.at(1);
+        //let mut before = self.at(0);
         
-        for _ in 1..(self.n - 2) {
-            middle.next = Option::from(before);
-            before = middle;
-            middle = after;
-            after = match middle.next {
-                Some(next) => next,
-                None => panic!("Incorrect at reverse funcction.")
-            } 
-        }
+        //for _ in 1..(self.n - 2) {
+            //middle.next = Option::from(before);
+            //before = middle;
+            //middle = after;
+            //after = match middle.next {
+                //Some(next) => next,
+                //None => panic!("Incorrect at reverse funcction.")
+            //} 
+        //}
 
-        middle.next = Option::from(before);
-        after.next = Option::from(middle);
-        self.head = Option::from(after);
+        //middle.next = Option::from(before);
+        //after.next = Option::from(middle);
+        //self.head = Option::from(after);
     
-        self.tail = &mut self.at_as_mut(self.n - 2).next;
+        //self.tail = &mut self.at_as_mut(self.n - 2).next;
 
-        self
-    }
-}
+        //self
+    //}
+//}
 
 impl<T : Clone + fmt::Display + std::convert::From<T>> DoubleNode<T> {
 
@@ -342,6 +245,7 @@ impl<T : Clone + fmt::Display + std::convert::From<T>> DoublyLinkedList<T> {
         self.n -= 1;
         node.borrow().clone()
     }
+    
 }
 
 impl<'a, T> List<T> for DoublyLinkedList<T> 
