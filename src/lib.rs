@@ -200,11 +200,6 @@ pub struct DoubleNode<T : Clone + fmt::Display + std::convert::From<T>> {
     pub value : T,
 }
 
-//#[derive(Debug, Clone)]
-//pub struct LinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
-    //head : Option<Rc<Node<T>>>, 
-//}
-
 #[derive(Debug)]
 pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
     pub head : Option<Rc<RefCell<DoubleNode<T>>>>,
