@@ -10,9 +10,6 @@ pub trait List<T> {
      * @brief inserts an element to the end of the list.
      * 
      * @param T value Element to be inserted.
-   
-   
-     
      * 
      * @return u8 0 on success, 1 otherwise.
      */
@@ -21,7 +18,7 @@ pub trait List<T> {
     /**
      * #brief insert an element so it ends up in the specified index.
      * 
-     * Both LinkedList and DoublyLinkedList implement this method in O(n) for time and O(1) for memory.
+     * DoublyLinkedList implements this method in O(n) for time and O(1) for memory.
      * 
      * @param T value element to be inserted.
      * @param usize index The new element will be at this index.
@@ -33,7 +30,7 @@ pub trait List<T> {
     /**
      * @brief removes an element at the specified index from the list.
      * 
-     * This method is implemented in O(n) for time and O(1) in DoublyLinkedList and LinkedList.
+     * This method is implemented in O(n) for time and O(1) in DoublyLinkedList.
      * 
      * @param usize index The element at this index will be freed and replaced by the next element.
      * 
@@ -45,7 +42,7 @@ pub trait List<T> {
      * @brief returns the value stored at the specified index.
      * 
      * This method is implemented in O(n) for time and O(1) for memory in the case of 
-     *  DoublyLinkedList and LinkedList.
+     *  DoublyLinkedList.
      * 
      * @param usize index the position of the desired element, starting from 0.
      * 
@@ -57,7 +54,7 @@ pub trait List<T> {
      * @brief returns the value stored at the specified index.
      * 
      * This method is implemented in O(n) for time and O(1) for memory in the case of 
-     *  DoublyLinkedList and LinkedList.
+     *  DoublyLinkedList.
      * 
      * @param usize index the position of the desired element, starting from 0.
      * 
@@ -68,7 +65,7 @@ pub trait List<T> {
     /**
      * @brief The number of elements stored in the list.
      * 
-     * This methos is implements in O(1) for time and memory in DoublyLinkedList and LinkedList.
+     * This methos is implements in O(1) for time and memory in DoublyLinkedList.
      * 
      * @return usize number of elements inside the list.
      */
@@ -79,7 +76,7 @@ pub trait InmutList<T> {
     /**
      * @brief inserts an element to the end of the list.
      * 
-     * LinkedList implements this method in O(n) for time and O(1) for memory.
+     * LinkedNode implements this method in O(n) for time and memory.
      * 
      * @param T value Element to be inserted.
      * 
@@ -90,7 +87,7 @@ pub trait InmutList<T> {
     /**
      * #brief insert an element so it ends up in the specified index.
      * 
-     * Both LinkedList and DoublyLinkedList implement this method in O(n) for time and O(1) for memory.
+     * LinkedNode implements this method in O(n) for time and memory.
      * 
      * @param T value element to be inserted.
      * @param usize index The new element will be at this index.
@@ -102,9 +99,9 @@ pub trait InmutList<T> {
     /**
      * @brief removes an element at the specified index from the list.
      * 
-     * This method is implemented in O(n) for time and O(1) in DoublyLinkedList and LinkedList.
+     * This method is implemented in O(n) for time and memory in LinkedNode. 
      * 
-     * @param usize index The element at this index will be freed and replaced by the next element.
+     * @param usize index The element at this index will be removed and replaced by the next element.
      * 
      * @return Self a new list without the removed elements.
      */
@@ -113,8 +110,7 @@ pub trait InmutList<T> {
     /**
      * @brief returns the value stored at the specified index.
      * 
-     * This method is implemented in O(n) for time and O(1) for memory in the case of 
-     *  DoublyLinkedList and LinkedList.
+     * This method is implemented in O(n) for time and memory for LinkedNode. 
      * 
      * @param usize index the position of the desired element, starting from 0.
      * 
@@ -125,11 +121,22 @@ pub trait InmutList<T> {
     /**
      * @brief The number of elements stored in the list.
      * 
-     * This methos is implements in O(1) for time and memory in DoublyLinkedList and LinkedList.
+     * This method is implemented in O(n) for time and memory in LinkedNode.
      * 
      * @return usize number of elements inside the list.
      */
     fn size(&self) -> usize;
+
+    /**
+     * @brief It reverses the original order of the list.
+     * 
+     * The list [0,1,2] will become [2,1,0].
+     * 
+     * This method is implemented in linear time for both time and memory.
+     * 
+     * @return Self A new list with the contents reversed.
+     */
+    fn reverse(&self) -> Self;
 }
 
 pub trait Reversible {
@@ -138,7 +145,7 @@ pub trait Reversible {
      * 
      * The list [0,1,2] will become [2,1,0].
      * 
-     * @return &Self inmutable reference to self.
+     * @return &mut Self mutable reference to self.
      */
     fn reverse(&mut self) -> &mut Self;
 }
@@ -219,10 +226,20 @@ mod tests {
 
         let mut linked_node : Rc<LinkedNode<u64>>= LinkedNode::new(10);
         linked_node = InmutList::append(linked_node, LinkedNode::new(15));
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[10,15]");
         linked_node = InmutList::insert_at(linked_node, LinkedNode::new(50), 0);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[50,10,15]");
         linked_node = InmutList::insert_at(linked_node, LinkedNode::new(1), 2);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[50,10,1,15]");
         linked_node = InmutList::insert_at(linked_node, LinkedNode::new(2), 0);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[2,50,10,1,15]");
         linked_node = InmutList::insert_at(linked_node, LinkedNode::new(3), 3);
+        let s = format!("{}", linked_node);
+        assert_eq!(s, "[2,50,10,3,1,15]");
         
         linked_node = InmutList::remove_at(linked_node, 0, 1);
         let s = format!("{}", linked_node);
@@ -238,25 +255,36 @@ mod tests {
         assert_eq!(s, "[50,10,1]");
     }
 
-    //#[test]
-    //fn reverse() {
-        //let mut llist : LinkedList<u64> = LinkedList::new();
-        //llist.append(10);
+    #[test]
+    fn reverse() {
+        let mut llist : Rc<LinkedNode<u64>> = LinkedNode::new(10);
 
-        //let mut s = format!("{}", llist);
+        let mut s = format!("{}", llist);
 
-        //assert_eq!(s, "[10]");
+        assert_eq!(s, "[10]");
 
-        //llist.append(20);
-        //s = format!("{}", llist.reverse());
+        llist = InmutList::append(llist, LinkedNode::new(20));
+        llist = llist.reverse();
 
-        //assert_eq!(s, "[20,10]");
+        s = format!("{}", llist);
+        assert_eq!(s, "[20,10]");
 
-        //llist.insert_at(30,0);
-        //s = format!("{}", llist.reverse());
+        llist = InmutList::insert_at(llist, LinkedNode::new(30),0);
+        llist = llist.reverse();
+        
+        s = format!("{}", llist);
+        assert_eq!(s, "[10,20,30]");
 
-        //assert_eq!(s, "[10,20,30]");
-    //}
+        for i in 4..11 {
+            llist = InmutList::append(llist, LinkedNode::new(i * 10));
+        }
+        
+        llist = llist.reverse();
+
+        s = format!("{}", llist);
+        assert_eq!(s, "[100,90,80,70,60,50,40,30,20,10]");
+        
+    }
 
     #[test]
     fn dllist_append_at() {
@@ -332,7 +360,7 @@ mod tests {
     }
     
     #[test]
-    fn deque_operation() {
+    fn dll_deque_operation() {
         let mut deq : DoublyLinkedList<u64> = DoublyLinkedList::new();
 
         let size : usize = 50;
@@ -385,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    fn remove_node() {
+    fn dll_remove_node() {
         let mut dllist : DoublyLinkedList<u64> = DoublyLinkedList::new();
         let mut str :  String;
 
@@ -420,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn clone_test() {
+    fn dll_clone_test() {
         let mut dllist : DoublyLinkedList<u64> = DoublyLinkedList::new();
         let str :  String;
         let clone_str : String;

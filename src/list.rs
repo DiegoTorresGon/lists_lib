@@ -13,23 +13,88 @@ use std::cmp;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-
+//We will use a centinel value at each list.
 impl<T : Clone + fmt::Display + std::convert::From<T>> LinkedNode<T> {
     pub fn new(value : T) -> Rc<LinkedNode<T>> { 
         let new = LinkedNode {
-            value, next : None, 
+            value : value.clone(), next : None, 
         };
 
-        Rc::from(new)
+        let rc_new = Rc::from(new);
+
+        Rc::from(LinkedNode {
+            value, next : Option::from(rc_new), 
+        })
+    }  
+
+    //This creates an empty list. value parameter is needed because we don't know what type of value T will be.
+    pub fn empty_list(value : T) -> Rc<LinkedNode<T>> {
+        Rc::from(LinkedNode {
+            value, next : None,
+        })
+    }
+
+    pub fn has_next(&self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        self.next.as_ref().unwrap().next.is_some()
+    }
+
+    pub fn next(&self) -> Rc<LinkedNode<T>> {
+        if self.is_empty() {
+            panic!("There is no next on empty list.");
+        }
+        let new_list = LinkedNode {
+            value : self.value.clone(), next : self.next.as_ref().unwrap().next.clone() 
+        };
+
+        Rc::from(new_list)
     }
 
     pub fn cons(element : Rc<LinkedNode<T>>, list : Rc<LinkedNode<T>>) -> Rc<LinkedNode<T>> {
+        if element.is_empty() {
+            return list;
+        }
+        if list.is_empty() {
+            return LinkedNode::new(element.value().clone());
+        }
+
         let new  = LinkedNode {
-            value : element.value.clone(),
-            next : Option::from(list),
+            value : element.value().clone(),
+            next : list.next.clone(),
         };
 
-        Rc::from(new)
+        let new_rc = Rc::from(new);
+
+        Rc::from(LinkedNode {
+            value : element.value.clone(),
+            next : Option::from(new_rc), 
+        })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.next.is_none()
+    }
+
+    pub fn value(&self) -> &T {
+        if self.is_empty() {
+            panic!("There is no value inside empty list.");
+        }
+        return &self.next.as_ref().unwrap().value; 
+    }
+
+    fn reverse_help(queued : Rc<LinkedNode<T>>, reversed : Rc<LinkedNode<T>>) -> Rc<LinkedNode<T>> {
+        if queued.is_empty() {
+            return reversed;
+        }
+        if !queued.has_next() {
+            return InmutList::insert_at(reversed, LinkedNode::new(queued.value().clone()), 0);
+        }
+        else {
+            return LinkedNode::reverse_help(queued.next(), 
+                InmutList::insert_at(reversed, LinkedNode::new(queued.value().clone()), 0))
+        }
     }
 }
 
@@ -38,21 +103,20 @@ impl<T>  fmt::Display for LinkedNode<T>
 { 
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         let mut result = String::from("[");
-        if self.next.is_some() {
-            let mut list = Option::from(Rc::from(self.clone()));
+        if !self.is_empty() {
+            let mut list = Rc::from(self.clone()); 
             
-            result += list.as_ref().unwrap().value.to_string().as_str();
+            result += list.value().to_string().as_str();
 
             loop {
-                if list.as_ref().unwrap().next.is_some() {
-                    list = Option::from(list.as_ref().unwrap().next.as_ref().unwrap().clone());
-                } 
-                result.add_assign(",");
-                result.add_assign(list.as_ref().unwrap().value.to_string().as_str());
-                
-                if list.as_ref().unwrap().next.is_none() {
+                if list.has_next() {
+                    list = list.next();
+
+                    result.add_assign(",");
+                    result.add_assign(list.value().to_string().as_str());
+                } else {
                     break;
-                }
+                } 
             }
         }
         result.add_assign("]");
@@ -65,11 +129,14 @@ impl<'a, T> InmutList<T> for Rc<LinkedNode<T>>
 {
 
     fn append(list : Rc<LinkedNode<T>>, other_list : Rc<LinkedNode<T>>) -> Rc<LinkedNode<T>> {
-        if list.next.is_none() {
+        if list.is_empty() {
+            return other_list;
+        }
+        if !list.has_next() {
             return  LinkedNode::cons(list, other_list); 
         }
         
-        return LinkedNode::cons(list.clone(), Self::append(list.next.as_ref().unwrap().clone(), other_list));
+        LinkedNode::cons(list.clone(), Self::append(list.next(), other_list))
     } 
 
     //the inserted value will be at index.
@@ -77,15 +144,12 @@ impl<'a, T> InmutList<T> for Rc<LinkedNode<T>>
         if index == 0 {
             return Self::append(insert_list, list);
         }                    
-        if index == 1 {  
-            let next : Self;
-            if list.next.is_some() {next = Self::append(insert_list, list.next.as_ref().unwrap().clone());}
-            else {next = insert_list;}
-
-            return Self::append(list, next);
+        if list.is_empty() {
+            panic!("Invalid index at function insert_at.");
         }
         
-        LinkedNode::cons(LinkedNode::new(list.value.clone()), Self::insert_at(list.next.as_ref().unwrap().clone(), insert_list, index - 1)) 
+        LinkedNode::cons(LinkedNode::new(list.value().clone()), 
+            Self::insert_at(list.next(), insert_list, index - 1)) 
     }
     
     fn remove_at(list : Self, index : usize, count : usize) -> Self {
@@ -93,86 +157,58 @@ impl<'a, T> InmutList<T> for Rc<LinkedNode<T>>
             return list;
         }
         if index == 0 {
-            match list.next.as_ref() {
-                Some(next) => return Self::remove_at(next.clone(), index, count - 1),
-                None => panic!("Invalid index as remove_at function.")
+            if count == 1 && !list.has_next() {
+                return LinkedNode::empty_list(list.value.clone());
+            } 
+            if list.is_empty() {
+                panic!("Invalid count or index at remove_at function.");
             }
+            return InmutList::remove_at(list.next(), index, count - 1);
         }
         
-        let next = match list.next.as_ref() {
-            Some(next) => next.clone(),
-            None => panic!("Invalid index at remove_at function.")
-        };
-
-        return Rc::from(LinkedNode::cons(list, Self::remove_at(next, index - 1, count)));
+        LinkedNode::cons(list.clone(), Self::remove_at(list.next(), index - 1, count))
     }
+
 
     fn value_at(list : Self, index: usize) -> T {
         if index == 0 {
-            return list.value.clone();
+            return list.value().clone();
         }
 
-        let next = match list.next.as_ref() {
-            Some(next) => next.clone(),
-            None => panic!("Invalid index."),
-        };
-
-        return Self::value_at(next, index - 1);
+        if list.has_next() {
+            Self::value_at(list.next(), index - 1)
+        } 
+        else {
+            panic!("Invalid index at value_at function.");
+        }
     }
 
     fn size(&self) -> usize {
+        if self.is_empty() {
+            return 0;
+        }
+        
         let mut n : usize = 1;
 
         let mut list = self.clone();
 
-        while list.next.is_some() {
-            list = list.next.as_ref().unwrap().clone();
+        while list.has_next() {
+            list = list.next();
             n += 1;
         }
 
         n
     }
+
+    fn reverse(&self) -> Self {
+        let size = self.size();
+
+        if size < 2 {return self.clone();}
+
+        LinkedNode::reverse_help(self.clone(), LinkedNode::empty_list(self.value.clone()))
+    }
+
 }
-
-//impl<T> Reversible for LinkedNode<T> 
-    //where T : Clone + fmt::Display + std::convert::From<T> 
-//{
-
-    //fn reverse(list : Self) -> &mut Self {
-        //if self.  {return self;}
-        //if self.n == 2 {
-            //let mut new_head = self.at(1); 
-            //new_head.next = Option::from(self.at(0));
-            //self.head = Option::from(new_head);
-
-            //self.tail = &mut self.at_as_mut(0).next;
-            //return self;
-        //}
-
-        ////List is at least of length 3.
-        //let mut after = self.at(2);
-        //let mut middle = self.at(1);
-        //let mut before = self.at(0);
-        
-        //for _ in 1..(self.n - 2) {
-            //middle.next = Option::from(before);
-            //before = middle;
-            //middle = after;
-            //after = match middle.next {
-                //Some(next) => next,
-                //None => panic!("Incorrect at reverse funcction.")
-            //} 
-        //}
-
-        //middle.next = Option::from(before);
-        //after.next = Option::from(middle);
-        //self.head = Option::from(after);
-    
-        //self.tail = &mut self.at_as_mut(self.n - 2).next;
-
-        //self
-    //}
-//}
 
 impl<T : Clone + fmt::Display + std::convert::From<T>> DoubleNode<T> {
 
