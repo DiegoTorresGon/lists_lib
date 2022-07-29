@@ -65,7 +65,7 @@ pub trait List<T> {
     /**
      * @brief The number of elements stored in the list.
      * 
-     * This methos is implements in O(1) for time and memory in DoublyLinkedList.
+     * This method is implements in O(1) for time and memory in DoublyLinkedList.
      * 
      * @return usize number of elements inside the list.
      */
