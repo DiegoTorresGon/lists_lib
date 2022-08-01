@@ -188,22 +188,22 @@ pub trait Deque<T>  {
 }
 
 #[derive(Debug, Clone)]
-struct LinkedNode<T : Clone + fmt::Display + std::convert::From<T>> {
-    pub next : Option<Rc<LinkedNode<T>>>,
-    pub value : T,
+pub struct LinkedNode<T : Clone + fmt::Display + std::convert::From<T>> {
+    next : Option<Rc<LinkedNode<T>>>,
+    value : T,
 }
 
 #[derive(Debug, Clone)]
 pub struct DoubleNode<T : Clone + fmt::Display + std::convert::From<T>> {
-    pub next : Option<Rc<RefCell<DoubleNode<T>>>>,
-    pub prev :  Option<Rc<RefCell<DoubleNode<T>>>>,
-    pub value : T,
+    next : Option<Rc<RefCell<DoubleNode<T>>>>,
+    prev :  Option<Rc<RefCell<DoubleNode<T>>>>,
+    value : T,
 }
 
 #[derive(Debug)]
 pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
-    pub head : Option<Rc<RefCell<DoubleNode<T>>>>,
-    pub n : usize,
+    head : Option<Rc<RefCell<DoubleNode<T>>>>,
+    n : usize,
 }
 
 #[cfg(test)]
