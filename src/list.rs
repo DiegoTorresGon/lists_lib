@@ -217,6 +217,14 @@ impl<T : Clone + fmt::Display + std::convert::From<T>> DoubleNode<T> {
             value, next : None, prev : None,
         }
     }
+
+    pub fn next(&self) -> Option<Rc<RefCell<DoubleNode<T>>>> {
+        self.next.clone()
+    }
+
+    pub fn prev(&self) -> Option<Rc<RefCell<DoubleNode<T>>>> {
+        self.prev.clone()
+    }
 }
 
 impl<T : Clone + fmt::Display + std::convert::From<T>> DoublyLinkedList<T> {
