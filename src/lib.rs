@@ -4,12 +4,7 @@ pub mod list;
 
 #[cfg(test)]
 mod tests {
-    use crate::list::List;
-    use crate::list::Reversible;
-    use crate::list::DoublyLinkedList;
-    use crate::list::Deque;
-    use crate::list::LinkedNode;
-    use crate::list::InmutList;
+    use crate::list::*;
     use std::rc::Rc;
 
     #[test]
