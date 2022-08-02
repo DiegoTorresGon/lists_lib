@@ -1,20 +1,221 @@
-use crate::DoublyLinkedList;
-use crate::List;
-use crate::InmutList;
-use crate::Deque;
-use crate::LinkedNode;
-use crate::DoubleNode;
-use crate::Reversible;
-
 use std::fmt;
-use std::string::String;
-use std::ops::AddAssign;
-use std::cmp;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-//We will use a centinel value at each list.
+pub trait List<T> {
+    /**
+    * @brief inserts an element to the end of the list.
+    * 
+    * @param T value Element to be inserted.
+    * 
+    * @return u8 0 on success, 1 otherwise.
+    */
+    fn append(&mut self, value : T) -> u8;
+
+    /**
+    * #brief insert an element so it ends up in the specified index.
+    * 
+    * DoublyLinkedList implements this method in O(n) for time and O(1) for memory.
+    * 
+    * @param T value element to be inserted.
+    * @param usize index The new element will be at this index.
+    * 
+    * @return u8 0 on success.
+    */
+    fn insert_at(&mut self, value : T, index : usize) -> u8;
+        
+    /**
+    * @brief removes an element at the specified index from the list.
+    * 
+    * This method is implemented in O(n) for time and O(1) in DoublyLinkedList.
+    * 
+    * @param usize index The element at this index will be freed and replaced by the next element.
+    * 
+    * @return u8 0 on success, 1 if the list is already empy or 2 if index is out of bounds.
+    */
+    fn remove_at(&mut self, index : usize) -> u8;
+
+    /**
+    * @brief returns the value stored at the specified index.
+    * 
+    * This method is implemented in O(n) for time and O(1) for memory in the case of 
+    *  DoublyLinkedList.
+    * 
+    * @param usize index the position of the desired element, starting from 0.
+    * 
+    * @return &T an inmutable borrow of the desired element stored inside the list.
+    */
+    fn value_at(&self, index : usize) -> &T;
+
+    /**
+    * @brief returns the value stored at the specified index.
+    * 
+    * This method is implemented in O(n) for time and O(1) for memory in the case of 
+    *  DoublyLinkedList.
+    * 
+    * @param usize index the position of the desired element, starting from 0.
+    * 
+    * @return &T a mutable borrow of the desired element stored inside the list.
+    */
+    fn mut_value_at(&mut self, index : usize) -> &mut T;
+
+    /**
+    * @brief The number of elements stored in the list.
+    * 
+    * This method is implements in O(1) for time and memory in DoublyLinkedList.
+    * 
+    * @return usize number of elements inside the list.
+    */
+    fn size(&self) -> usize;
+}
+
+pub trait InmutList<T> {
+    /**
+    * @brief inserts an element to the end of the list.
+    * 
+    * LinkedNode implements this method in O(n) for time and memory.
+    * 
+    * @param T value Element to be inserted.
+    * 
+    * @return Self A new list with the new value.
+    */
+    fn append(list : Self, other_list : Self) -> Self;
+
+    /**
+    * #brief insert an element so it ends up in the specified index.
+    * 
+    * LinkedNode implements this method in O(n) for time and memory.
+    * 
+    * @param T value element to be inserted.
+    * @param usize index The new element will be at this index.
+    * 
+    * @return Self A new list with the inserted value.
+    */
+    fn insert_at(list : Self, insert_list : Self, index : usize) -> Self;
+        
+    /**
+    * @brief removes an element at the specified index from the list.
+    * 
+    * This method is implemented in O(n) for time and memory in LinkedNode. 
+    * 
+    * @param usize index The element at this index will be removed and replaced by the next element.
+    * 
+    * @return Self a new list without the removed elements.
+    */
+    fn remove_at(list : Self, index : usize, count : usize) -> Self;
+
+    /**
+    * @brief returns the value stored at the specified index.
+    * 
+    * This method is implemented in O(n) for time and memory for LinkedNode. 
+    * 
+    * @param usize index the position of the desired element, starting from 0.
+    * 
+    * @return &T an inmutable borrow of the desired element stored inside the list.
+    */
+    fn value_at(list : Self, index : usize) -> T;
+
+    /**
+    * @brief The number of elements stored in the list.
+    * 
+    * This method is implemented in O(n) for time and memory in LinkedNode.
+    * 
+    * @return usize number of elements inside the list.
+    */
+    fn size(&self) -> usize;
+
+    /**
+    * @brief It reverses the original order of the list.
+    * 
+    * The list [0,1,2] will become [2,1,0].
+    * 
+    * This method is implemented in linear time for both time and memory.
+    * 
+    * @return Self A new list with the contents reversed.
+    */
+    fn reverse(&self) -> Self;
+}
+
+pub trait Reversible {
+    /**
+    * @brief It reverses the original order of the list.
+    * 
+    * The list [0,1,2] will become [2,1,0].
+    * 
+    * @return &mut Self mutable reference to self.
+    */
+    fn reverse(&mut self) -> &mut Self;
+}
+
+pub trait Deque<T>  {
+    /**
+    * @brief To check if the Deque is empty.
+    * 
+    * @return bool true if it's empty, false otherwise.
+    */
+    fn empty(&self) -> bool;
+
+    /**
+    * @brief Pushes an element to the end.
+    * 
+    * @return &mut Self A reference to itself.
+    */
+    fn push_back(&mut self, value : T) -> &mut Self;
+
+    /**
+    * @brief Pops the last element.
+    * 
+    * @return T Element that was previously at the back.
+    */
+    fn pop_back(&mut self) -> T;
+
+    /**
+    * @brief Pushes an element to the front of the list.
+    * 
+    * @return &mut Self Borrow of itself.
+    */
+    fn push_front(&mut self, value : T) -> &mut Self;
+
+    /**
+    * @brief Pops the element in the beggining.
+    * 
+    * @return T Element previously located at the beggining.
+    */
+    fn pop_front(&mut self) -> T;
+}
+
+#[derive(Debug, Clone)]
+pub struct LinkedNode<T : Clone + fmt::Display + std::convert::From<T>> {
+    next : Option<Rc<LinkedNode<T>>>,
+    value : T,
+}
+
+#[derive(Debug, Clone)]
+pub struct DoubleNode<T : Clone + fmt::Display + std::convert::From<T>> {
+    next : Option<Rc<RefCell<DoubleNode<T>>>>,
+    prev :  Option<Rc<RefCell<DoubleNode<T>>>>,
+    value : T,
+}
+
+#[derive(Debug)]
+pub struct DoublyLinkedList<T : Clone + fmt::Display + std::convert::From<T>> {
+    head : Option<Rc<RefCell<DoubleNode<T>>>>,
+    n : usize,
+}
+
+///
+//////////////////////////////////////////////////
+//Implementation part
+//////////////////////////////////////////////////
+/// 
+
+use std::string::String;
+use std::ops::AddAssign;
+use std::cmp;
+
 impl<T : Clone + fmt::Display + std::convert::From<T>> LinkedNode<T> {
+    //Each list will use a centinel value.
+
     pub fn new(value : T) -> Rc<LinkedNode<T>> { 
         let new = LinkedNode {
             value : value.clone(), next : None, 
@@ -474,7 +675,7 @@ impl<T> Clone for DoublyLinkedList<T>
         for _ in 0..(self.n) {
             new_list.append(curr_old.borrow().value.clone());
 
-           curr_old = curr_old.clone().borrow().next.as_ref().unwrap().clone();
+        curr_old = curr_old.clone().borrow().next.as_ref().unwrap().clone();
         }
 
         new_list
